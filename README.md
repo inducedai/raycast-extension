@@ -7,7 +7,7 @@ A raycast wrapper for Induced's beta APIs
 Clone the repository
 
 ```bash
-git clone https://github.com/inducedai/induced-raycast-extension.git
+git clone https://github.com/inducedai/raycast-extension.git
 ```
 
 Install the dependencies
