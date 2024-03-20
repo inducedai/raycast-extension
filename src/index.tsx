@@ -125,7 +125,7 @@ export default function Command() {
               <Action.OpenInBrowser url="https://browse.new" title="browse.new" />
               <Action.CreateQuicklink
                 title="Install Quicklink"
-                quicklink={{ link: `https://watch.induced.ai/watch/\{sessionId\}`, name: "Open Induced Stream" }}
+                quicklink={{ link: `https://watch.induced.ai/watch/{SessionID}`, name: "Open Induced Stream" }}
               />
               <Action title="Clear API Key" onAction={removeKey} icon="" />
             </ActionPanel>
