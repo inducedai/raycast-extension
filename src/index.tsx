@@ -24,7 +24,7 @@ export default function Command() {
   const [prompt, setPrompt] = useCachedState("prompt", "");
   const [sessionId, setSessionId] = useCachedState("sessionId", "");
   const [showSession, setShowSession] = useCachedState("showSession", false);
-  const [steps, setSteps] = useCachedState("steps", []);
+  const [steps, setSteps] = useCachedState<Step[]>("steps", []);
   const [status, setStatus] = useCachedState("status", "Running");
 
   useEffect(() => {
@@ -37,13 +37,33 @@ export default function Command() {
   }, []);
 
   useEffect(() => {
-    const interval = setInterval(fetchSession, 1000);
+    const intervalId = setInterval(async () => {
+      if (!sessionId || !showSession || status === "COMPLETED") return;
 
-    return () => clearInterval(interval);
-  }, []);
+      const apiKey = await LocalStorage.getItem("key");
+      console.log("fetching session", sessionId, showSession, apiKey);
+
+      got
+        .get(`https://api.induced.ai/api/v1/autonomous/${sessionId}`, {
+          headers: { "x-api-key": apiKey as string },
+        })
+        .then((response) => {
+          setSteps(JSON.parse(response.body).data.run.steps);
+          setStatus(JSON.parse(response.body).data.run.status);
+        })
+        .catch((error) => {
+          console.log(error);
+        });
+    }, 1000);
+    return () => clearInterval(intervalId);
+  }, [sessionId, showSession]);
 
   function handlePromptSubmission(payload: PromptSubmission) {
     setIsLoading(true);
+    setSteps([]);
+    setStatus("INITIALISING");
+    setShowSession(false);
+    setSessionId("");
     got
       .post("https://api.induced.ai/api/v1/autonomous", {
         headers: { "x-api-key": value, "Content-Type": "application/json" },
@@ -54,6 +74,7 @@ export default function Command() {
         setPrompt(payload.prompt);
         setShowSession(true);
         setIsLoading(false);
+
         Clipboard.copy(`https://watch.induced.ai/watch/${JSON.parse(response.body).data.id}`);
       })
       .catch((error) => {
@@ -76,29 +97,29 @@ export default function Command() {
     setShowSession(!showSession);
   }
 
-  function fetchSession() {
-    if (!sessionId || !showSession) return;
-
-    got
-      .get(`https://api.induced.ai/api/v1/autonomous/${sessionId}`, {
-        headers: { "x-api-key": value },
-      })
-      .then((response) => {
-        if (JSON.parse(response.body).data.run.steps.length === steps.length) return;
-        setSteps(JSON.parse(response.body).data.run.steps);
-        setStatus(JSON.parse(response.body).data.run.status);
-      })
-      .catch((error) => {
-        console.log(error);
-      });
-  }
-
   return (
     <>
       {showSession ? (
         <Detail
           isLoading={status !== "COMPLETED"}
-          markdown={`# ${prompt}\n\nSession ID: ${sessionId}\n\nStatus: ${status}\n\n[Open in Browser](https://watch.induced.ai/watch/${sessionId})\n\n## Thought Stream:\n\n---\n\n${steps.map((step: Step) => `${step.screenshot ? `![Screenshot](${step.screenshot})` : ""}${step.thought || ""}`).join(`\n\n---\n\n`)}`}
+          markdown={`
+# ${prompt}
+
+### Session ID:
+
+${sessionId}
+
+### Status:
+
+${status}
+
+
+## Thought Stream:
+
+---
+
+${steps.map((step: Step) => `${step.screenshot ? `![Screenshot](${step.screenshot})` : ""}${step.thought || ""}`).join(`\n\n---\n\n`)}
+`}
           actions={
             <ActionPanel>
               <Action title="New Session" onAction={toggleShowSession} />
