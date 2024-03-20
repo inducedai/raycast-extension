@@ -5,6 +5,7 @@
   "description": "A raycast wrapper for Induced's beta APIs",
   "icon": "command-icon.png",
   "author": "ayush",
+  "owner": "induced",
   "categories": [
     "Applications",
     "Productivity"
